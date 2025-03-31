@@ -3,6 +3,8 @@
 # Form implementation generated from reading ui file 'main_ui.ui'
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from config import VERSION, AUTOR, NOMBRE_APP
+
 
 class Ui_SeleccionConexion(object):
     def setupUi(self, SeleccionConexion):

@@ -1,10 +1,25 @@
 # -*- coding: utf-8 -*-
 from PyQt5 import QtCore, QtGui, QtWidgets
+from config import VERSION, AUTOR, NOMBRE_APP
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(700, 550)
+        self.menubar = QtWidgets.QMenuBar(MainWindow)
+        MainWindow.setMenuBar(self.menubar)
+        self.menuOpciones = QtWidgets.QMenu("Opciones", self.menubar)
+        self.menuTema = self.menuOpciones.addMenu("Cambiar tema")
+        self.accionClaro = QtWidgets.QAction("Claro", MainWindow)
+        self.accionOscuro = QtWidgets.QAction("Oscuro", MainWindow)
+        self.menuTema.addAction(self.accionClaro)
+        self.menuTema.addAction(self.accionOscuro)
+        self.menuAcerca = self.menuOpciones.addMenu("Acerca de")
+        self.menuAcerca.addAction(f"{NOMBRE_APP} - Asistente Personal")
+        self.menuAcerca.addAction(f"Versión: {VERSION}")
+        self.menuAcerca.addAction(f"Autor: {AUTOR}")
+        self.menuAcerca.addAction("Gracias por usar Ayase")
+        self.menubar.addMenu(self.menuOpciones)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
 
@@ -17,13 +32,6 @@ class Ui_MainWindow(object):
         self.labelTitulo.setFont(font)
         self.labelTitulo.setAlignment(QtCore.Qt.AlignCenter)
         self.gridLayout.addWidget(self.labelTitulo, 0, 0, 1, 2)
-
-        # 🌙 Botón de tema (arriba derecha)
-        self.botonTema = QtWidgets.QPushButton(self.centralwidget)
-        self.botonTema.setObjectName("botonTema")
-        self.botonTema.setToolTip("Cambiar tema")
-        self.botonTema.setText("🌙")
-        self.gridLayout.addWidget(self.botonTema, 0, 2, 1, 1)
 
         # 🔽 Splitter vertical (chat + input)
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)

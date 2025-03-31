@@ -1,8 +1,37 @@
-from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QMainWindow, QTextEdit, QApplication
 from PyQt5 import QtCore, QtWidgets
 from interfaz.chat_ui import Ui_MainWindow
 from interfaz.tema import aplicar_tema
-from openai import OpenAI, OpenAIError
+from openai import OpenAI
+import os
+
+def interpretar_error_openai(error):
+    try:
+        status = error.response.status_code
+        detalle = error.response.json()
+        mensaje = detalle.get("error", {}).get("message", "")
+        tipo = detalle.get("error", {}).get("type", "")
+        codigo = detalle.get("error", {}).get("code", "")
+    except Exception:
+        return "Ayase: Se produjo un error inesperado al intentar comunicarme con OpenAI."
+
+    if status == 401:
+        return "Ayase: Tu API Key parece ser inválida. Verificá que esté bien escrita, cielo 😅"
+    elif status == 403:
+        return "Ayase: Tu cuenta no tiene permiso para acceder a esta función. Revisá tu cuenta o región 😔"
+    elif status == 429:
+        if codigo == "billing_not_active":
+            return "Ayase: Tu cuenta no tiene un plan activo. Revisá tu facturación en OpenAI 💸"
+        elif tipo == "rate_limit_exceeded":
+            return "Ayase: Estás enviando muchas solicitudes muy rápido. Tomate un respiro 😉"
+        else:
+            return "Ayase: No puedo procesar tu solicitud ahora. Probá dentro de un rato."
+    elif status == 400:
+        return "Ayase: Algo salió mal con el formato del mensaje. Podés intentar corregirlo ✍️"
+    elif status in [500, 502, 503, 504]:
+        return "Ayase: Los servidores de OpenAI están teniendo un mal día. Volvé más tarde 💔"
+
+    return f"Ayase: Error inesperado ({status}): {mensaje}"
 
 class AyaseApp(QMainWindow):
     def __init__(self, api_key=None, tema_claro=True, volver=None):
@@ -11,40 +40,34 @@ class AyaseApp(QMainWindow):
         self.ui.setupUi(self)
         self.tema_claro = tema_claro
         self.api_key = api_key
-        self.volver_a = volver
-        self.mensajes = []
-        self.ui.inputMensaje.keyPressEvent = self.keyPressEventPersonalizado
+        self.volver = volver
 
+        aplicar_tema(self, self.tema_claro)
 
-        aplicar_tema(self, self.tema_claro, self.ui.botonTema)
-
-        # Configurar selector de modelo
-        self.ui.comboModelo.addItems(["gpt-3.5-turbo", "gpt-4"])
-        self.modelo_actual = "gpt-3.5-turbo"
-        self.ui.comboModelo.currentTextChanged.connect(self.cambiar_modelo)
-
-        # Conectar botones
+        self.ui.botonAtras.clicked.connect(self.volver_atras)
         self.ui.botonEnviar.clicked.connect(self.enviar_mensaje)
-        self.ui.botonAtras.clicked.connect(self.volver)
-        self.ui.botonTema.clicked.connect(self.cambiar_tema)
 
-        if self.api_key:
-            self.client = OpenAI(api_key=self.api_key)
-        else:
-            self.client = None
+        self.ui.accionClaro.triggered.connect(self.tema_claro_manual)
+        self.ui.accionOscuro.triggered.connect(self.tema_oscuro_manual)
 
-    def keyPressEventPersonalizado(self, event):
-        if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
-            if event.modifiers() == QtCore.Qt.ShiftModifier:
-                self.ui.inputMensaje.insertPlainText("\n")
-            else:
-                self.enviar_mensaje()
-        else:
-            QtWidgets.QTextEdit.keyPressEvent(self.ui.inputMensaje, event)
+        self.ui.inputMensaje.installEventFilter(self)
 
+        # Modelos disponibles
+        self.ui.comboModelo.addItems(["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"])
+        self.ui.comboModelo.setCurrentIndex(0)
 
-    def cambiar_modelo(self, modelo):
-        self.modelo_actual = modelo
+    def tema_claro_manual(self):
+        self.tema_claro = True
+        aplicar_tema(self, self.tema_claro)
+
+    def tema_oscuro_manual(self):
+        self.tema_claro = False
+        aplicar_tema(self, self.tema_claro)
+
+    def volver_atras(self):
+        if self.volver:
+            self.volver.show()
+        self.close()
 
     def enviar_mensaje(self):
         mensaje = self.ui.inputMensaje.toPlainText().strip()
@@ -54,29 +77,40 @@ class AyaseApp(QMainWindow):
         self.ui.chatArea.append(f"Tú: {mensaje}")
         self.ui.inputMensaje.clear()
 
-        if not self.client:
+        if not self.api_key:
             self.ui.chatArea.append("Ayase: [Error: No hay conexión a la API]")
             return
 
-        self.mensajes.append({"role": "user", "content": mensaje})
+        modelo = self.ui.comboModelo.currentText()
 
         try:
-            respuesta = self.client.chat.completions.create(
-                model=self.modelo_actual,
-                messages=self.mensajes
+            cliente = OpenAI(api_key=self.api_key)
+            respuesta = cliente.chat.completions.create(
+                model=modelo,
+                messages=[{"role": "user", "content": mensaje}],
+                temperature=0.7,
             )
-            contenido = respuesta.choices[0].message.content.strip()
+            contenido = respuesta.choices[0].message.content
             self.ui.chatArea.append(f"Ayase: {contenido}")
-            self.mensajes.append({"role": "assistant", "content": contenido})
-        except OpenAIError as e:
-            self.ui.chatArea.append(f"Ayase: [Error: {str(e)}]")
-            print(f"[DEBUG] Error OpenAI: {e}")
 
-    def cambiar_tema(self):
-        self.tema_claro = not self.tema_claro
-        aplicar_tema(self, self.tema_claro, self.ui.botonTema)
+        except Exception as error:
+            try:
+                import openai
+                if isinstance(error, openai.OpenAIError):
+                    mensaje_error = interpretar_error_openai(error)
+                else:
+                    mensaje_error = f"Ayase: [Error desconocido] {str(error)}"
+            except:
+                mensaje_error = f"Ayase: [Error inesperado] {str(error)}"
 
-    def volver(self):
-        if self.volver_a:
-            self.volver_a.show()
-        self.close()
+            self.ui.chatArea.append(mensaje_error)
+
+    def eventFilter(self, source, event):
+        if source == self.ui.inputMensaje and event.type() == QtCore.QEvent.KeyPress:
+            if event.key() in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
+                if event.modifiers() == QtCore.Qt.ShiftModifier:
+                    return False  # Permitir salto de línea
+                else:
+                    self.enviar_mensaje()
+                    return True  # Evita que se agregue salto de línea
+        return super().eventFilter(source, event)

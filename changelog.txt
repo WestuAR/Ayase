@@ -1,0 +1,43 @@
+Ayase - Historial de versiones
+
+🔹 Versión 0.0.1
+
+Estructura inicial del proyecto creada
+
+Implementación de ventana de selección de conexión
+
+Campo para ingresar API Key
+
+Botón para continuar hacia la ventana de chat
+
+🔹 Versión 0.0.2
+
+Rediseño completo con interfaz responsive en Qt Designer
+
+Agregado de modo claro y oscuro (con botón)
+
+Persistencia del modo de tema entre sesiones
+
+Encriptado y guardado seguro de la API Key
+
+Modularización del proyecto (ventanas, estilos, UI)
+
+Agregado del botón "Volver" para navegar entre pantallas
+
+Ajustes visuales al chat y eliminación de límites molestos en campos
+
+Soporte para enviar mensajes con Enter y salto de línea con Shift+Enter
+
+Implementación de selector de modelo (gpt-3.5 / gpt-4 / gpt-4-turbo)
+
+Menú “Acerca de” con nombre, versión y autor
+
+🔹 Versión 0.0.3
+
+Reemplazo del botón de tema por menú superior con selector (Claro / Oscuro)
+
+Archivo config.py para centralizar versión y autor
+
+Eliminación del botón de tema en ventana de chat
+
+Manejo de errores OpenAI con interpretación y mensajes claros

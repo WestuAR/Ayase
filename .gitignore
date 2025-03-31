@@ -1,2 +1,5 @@
 /__pycache__
 /venv
+interfaz/__pycache__/chat_ui.cpython-310.pyc
+interfaz/__pycache__/main_ui.cpython-310.pyc
+ventanas/__pycache__/chat.cpython-310.pyc
